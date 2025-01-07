@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # MineSweeper
 
 ## Introduction
