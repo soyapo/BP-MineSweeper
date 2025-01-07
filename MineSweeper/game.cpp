@@ -1,12 +1,13 @@
+//necessary libraries
 #include <bits/stdc++.h>
-#include <windows.h>
+#include <windows.h> //getch()
 #include <conio.h>
 
-using namespace std;
+using namespace std; //for cout, mainly.
 
 #define fst ios_base::sync_with_stdio(0); cin.tie(NULL);
 
-//--------------------------
+//---unicode characters for the grid---
 
 const string TopLeftCorner = "\u2554";
 const string TopRightCorner = "\u2557";
@@ -23,18 +24,20 @@ const string ThreeWayRight = "\u2560";
 
 const string FourWay = "\u256C";
 
-//--------------------------
-
+//----game data-----
 struct{
-    int pos[2] = {1, 2},
+    int pos[2] = {1, 2}, //cursor position
     TableSize[2],
-    TableNumbers[20][40];
+    TableNumbers[20][40]; //-1 for bomb, 1-8 for numbers
     
-    clock_t StartTime, GameTime;
+    clock_t StartTime, FullTime;
 
     int BombCount, FlagCount, HiddenCount, score;
 
-    bool started, bomb[20][40], flag[20][40], show[20][40];
+    bool started, //to distinguish the first action of the player 
+    bomb[20][40], //bomb positions in the grid
+    flag[20][40], //flag positions in the grid
+    show[20][40]; //whether to show the bombs/numbers or not
 
     string PlayerName,
     options[4] = {
@@ -52,49 +55,49 @@ struct{
 
 } game;
 
-//--------------------------
+//----Function Initialization-----
 
-void gotoxy(short x, short y, string s = "");
+void gotoxy(short x, short y, string s = ""); //cursor positioning
 
-void Color(int f, int b);
-void Logo();
-void PrintChar(string s, int n);
+void Color(int f, int b); //set the output color(foreground, background)
+void Logo(); //the logo shown in menu pages
+void PrintChar(string s, int n); //prints string s for n times
 
-void ConstructTable(int row, int column);
-void SetTableNumbers(int height, int width, int bombcount, int x, int y);
+void ConstructTable(int row, int column); //builds and outputs the table given the input rows and columns based on difficulity
+void SetTableNumbers(int height, int width, int bombcount, int x, int y); //randomly places bombs and respectively numbers, given the width, height and the position of the player's first clearance
 
-void StartGame();
-void unroll(int x, int y);
+void StartGame(); //starts the game with previous initializations done
+void unroll(int x, int y); //reveals the neccessary cells based on the cell's (x, y) content 
 
-void Menu();
-void Instruction();
-void ButtonSwitch(int index, int list_index);
+void Menu(); //starts the menu procedure
+void Instruction(); //instructions page
+void ButtonSwitch(int index, int list_index); //for switching between menu options
 
-void SetDifficulty();
-void SetValue(int row, int col, int bomb);
-void SetFlag();
+void SetDifficulty(); //The menu page dedicated for choosing the difficulity level
+void SetValue(int row, int col, int bomb); //initializes the game with the given row, column and bomb count
+void SetFlag(); //for flag/unflagging a cell
 
-void EndGame(bool win);
+void EndGame(bool win, string filler, string result); //end of game procedure, based on win or lost 
 
+void Create(); //creates the scoreboard file if neccessary
+void ShowScore(); //scoreboard page
+void UpdateScore(string name, int score, int time); //updates the scoreboard with given data
 
-void Create();
-void ShowScore();
-void UpdateScore(string name, int score, int time);
-
-int score();
+int score(); //calculates player score
 
 //--------------------------
 
 int main(){
-    Menu();
+    Menu(); //game starts with calling the main menu
 
     return 0;
 }
 
 void gotoxy(short x, short y, string s){
+    //prints string s with null default value in pos(x, y) of the std output.
     HANDLE h_std = GetStdHandle(STD_OUTPUT_HANDLE);
     COORD pos = {x, y};
-    SetConsoleCursorPosition(h_std, pos);
+    SetConsoleCursorPosition(h_std, pos); 
     cout<<s;
 }
 
@@ -136,6 +139,7 @@ void PrintChar(string s, int n){
 void ConstructTable(int row, int column){
     system("cls");
 
+    //Top Row
     cout<<TopLeftCorner;
     
     for(int i = 0; i < column - 1; i++){
@@ -146,6 +150,7 @@ void ConstructTable(int row, int column){
     PrintChar(HorizontalBar, 3);
     cout<<TopRightCorner<<endl;
     
+    //Middle Rows
     for(int i = 0; i < row - 1; i++){
         for(int j = 0; j < column; j++){
             cout<<VerticallBar;
@@ -169,6 +174,7 @@ void ConstructTable(int row, int column){
         PrintChar(" ", 3);
     }
 
+    //Bottom Row
     cout<<endl<<BottomLeftCorner;
     
     for(int i = 0; i < column - 1; i++){
@@ -180,22 +186,26 @@ void ConstructTable(int row, int column){
     cout<<BottomRightCorner;
 
     cout<<endl<<endl<<"Flags Remaining: "<<game.FlagCount<<endl<<endl;
-
+    
     gotoxy(game.pos[1], game.pos[0]);
 }
 
 void SetTableNumbers(int height, int width, int bombcount, int x, int y){
-    game.TableNumbers[x][y] = 0;
+    game.TableNumbers[x][y] = 0; //to ensure the first chosen cell is empty
     
-    int RandX, RandY;
+    int RandX, RandY; //random postion for a bomb
     
-    srand(time(0));
+    srand(time(0)); //random seed for bomb positions
+    
+    //to place bombs in a random (and new) postion
     while(bombcount){
         RandX = rand() % height;
         RandY = rand() % width;
         if(abs(RandX - x) > 1 && abs(RandY - y) > 1 && !game.bomb[RandX][RandY])
             game.bomb[RandX][RandY] = true, game.TableNumbers[RandX][RandY] = -1, bombcount--;
     }
+
+    //to set table numbers based on bomb position
     for(int i = 0; i < height; i++){
         for(int j = 0; j < width; j++){
             if(game.TableNumbers[i][j] > -1){
@@ -234,6 +244,8 @@ void StartGame(){
 
     game.started = 0;
     char move;
+
+    //receive player input (WASD - F for flag - C for clear) and initialize the neccessary procedures 
     while(true){
         move = getch();
         switch(move){
@@ -265,7 +277,7 @@ void StartGame(){
             SetFlag();
             break;
         case 'c':
-            if(!game.started){
+            if(!game.started){ //is it the first time player has pressed this thing?
                 SetTableNumbers(game.TableSize[0], game.TableSize[1], game.BombCount, (game.pos[0] - 1) / 2, (game.pos[1] - 2) / 4);
                 gotoxy(game.pos[1], game.pos[0]);
 
@@ -285,17 +297,18 @@ void StartGame(){
 }
 
 void unroll(int x, int y){
-    if(game.show[x][y])
+    if(game.show[x][y]) //already revealed, go back
         return;
 
-    if(!game.TableNumbers[x][y]){
+    if(!game.TableNumbers[x][y]){ //it's empty, do a recursive calling for its adjacent cells 
         Color(7, 0);
         gotoxy(4 * y + 2, 2 * x + 1, "-");
         game.show[x][y] = true, game.HiddenCount--;
 
-        if(game.HiddenCount == game.BombCount)
-            EndGame(1);
+        if(game.HiddenCount == game.BombCount) //endgame if all clear cells have been cleared
+            EndGame(1, "F", "Won");
 
+        //recursive calls
         if(x >= 1)
             unroll(x - 1, y);
         if(x < game.TableSize[0] - 1)
@@ -314,25 +327,27 @@ void unroll(int x, int y){
             unroll(x + 1, y + 1);
 
     }
-    else if(game.TableNumbers[x][y] > 0){
+    else if(game.TableNumbers[x][y] > 0){ //it's a number, 
         Color(game.TableNumbers[x][y], 0);
         gotoxy(4 * y + 2, 2 * x + 1, to_string(game.TableNumbers[x][y]));
         game.show[x][y] = true, game.HiddenCount--;
         Color(7, 0);
         
-        if(game.HiddenCount == game.BombCount)
-            EndGame(1);
+        if(game.HiddenCount == game.BombCount) //endgame if all clear cells have been cleared
+            EndGame(1, "F", "Won");
         
         return;
     }
-    else if(game.TableNumbers[x][y] == -1){
-        EndGame(0);
+    else if(game.TableNumbers[x][y] == -1){ //bomb clicked, endgame lost procedure
+        EndGame(0, "*", "Lost");
     }
 }
 
 void Menu(){
     int index = 0;
     ButtonSwitch(index, 0);
+
+    //navigate/choose menu buttons based on player input (WS, ENTER)
     while(true){
         char op = getch();
         switch(op){
@@ -346,10 +361,10 @@ void Menu(){
                 break;
             case '\r':
                 switch(index){
-                    case 0: SetDifficulty();
-                    case 1: Instruction();
-                    case 2: ShowScore();
-                    case 3: exit(0);
+                    case 0: SetDifficulty(); //difficulity page
+                    case 1: Instruction();  //instruction page
+                    case 2: ShowScore();   //scoreboard page
+                    case 3: exit(0);      //exit game
                 }
         }
 
@@ -375,6 +390,7 @@ void ButtonSwitch(int index, int list_index){
     logo();
     Color(7, 0);
 
+    //Shows arrows around the "index" index of the "list_index" list. 
     for(int i = 0; i < 4; i++){
         cout<<"          ";
 
@@ -390,6 +406,8 @@ void ButtonSwitch(int index, int list_index){
 void SetDifficulty(){
     int index = 0;
     ButtonSwitch(index, 1);
+
+    //set game values based on chosen difficulity
     while(true){
         char op = getch();
         switch(op){
@@ -414,6 +432,7 @@ void SetDifficulty(){
 }
 
 void SetValue(int row, int col, int bomb){
+    //initialize default game values based on chosen difficulity at the start of the game 
     int pos[2] = {1, 2};
 
     game.TableSize[0] = row, game.TableSize[1] = col;
@@ -433,8 +452,10 @@ void SetValue(int row, int col, int bomb){
 }
 
 void SetFlag(){
+    //is it an unrevealed cell, and has the game started yet?
     if(!game.show[(game.pos[0] - 1) / 2][(game.pos[1] - 2) / 4] && game.started){
 
+        //is it already flagged?
         if(!game.flag[(game.pos[0] - 1) / 2][(game.pos[1] - 2) / 4] && game.FlagCount){
             Color(4, 0);
             cout<<"F";
@@ -454,48 +475,24 @@ void SetFlag(){
     }
 }
 
-void EndGame(bool win){
+void EndGame(bool win, string filler, string result){
+    Color(4, 0);
 
-    if(win){
-        for(int i = 0; i < game.TableSize[0]; i++){
-            for(int j = 0; j < game.TableSize[1]; j++){
-                if(game.bomb[i][j]){
-                    Color(4, 0);
-                    gotoxy(4 * j + 2, 2 * i + 1, "F");
-                    Color(7, 0);
-                }
-            }
-        }
+    for(int i = 0; i < game.TableSize[0]; i++)
+        for(int j = 0; j < game.TableSize[1]; j++)
+            if(game.bomb[i][j])
+                gotoxy(4 * j + 2, 2 * i + 1, filler);
+                
+    Color(7, 0);
+    gotoxy(0, 2 * (game.TableSize[0] + 1));
 
-        gotoxy(0, 2 * (game.TableSize[0] + 1));
-
-        cout<<"You Won!!!            \n";
-        cout<<"Score: "<<score() * 2<<'\n';
-        cout<<"Time: "<<game.GameTime<<endl;
-    }
-
-    else{
-        for(int i = 0; i < game.TableSize[0]; i++){
-            for(int j = 0; j < game.TableSize[1]; j++){
-                if(game.bomb[i][j]){
-                    Color(4, 0);
-                    gotoxy(4 * j + 2, 2 * i + 1, "*");
-                    Color(7, 0);
-                }
-            }
-        }
-
-        gotoxy(0, 2 * (game.TableSize[0] + 1));
-
-        cout<<"You Lost!!!            \n\n";
-        cout<<"Score: "<<score()<<'\n';
-        cout<<"Time: "<<game.GameTime<<endl;
-    }
-    
+    cout<<"You "<<result<<"!!!            \n";
+    cout<<"Score: "<<score() * 2<<'\n';
+    cout<<"Time: "<<game.FullTime<<endl;    
     cout<<"Enter Name: ";
     getline(cin, game.PlayerName);
-    
-    UpdateScore(game.PlayerName, game.score, game.GameTime);
+
+    UpdateScore(game.PlayerName, game.score, game.FullTime);
     Menu();
 }
 
@@ -513,22 +510,19 @@ void ShowScore(){
     system("cls");
     
     fstream data;
-    data.open("score.txt", ios::in);
-    
     string name;
-    int score, time, count = 1;
-    
+    data.open("score.txt", ios::in);
     getline(data, name);
+    
+    int score, time, count = 1;
     
     cout<<"Top 20 Players\n\n";
     cout<<"Rank     Score     Time     Player\n\n";
-    while(data>>name>>score>>time){
-        Color(count, 0);
-		cout<<setw(2)<<count;
-		cout<<setw(12)<<score;
-		cout<<setw(9)<<time;
-        gotoxy(28, count + 3, name);
-        cout<<endl;
+    while(data>>name>>score>>time && count <= 20){
+        Color((count % 16 ? count % 16 : 1), 0);
+
+		cout<<setw(2)<<count<<setw(12)<<score<<setw(9)<<time;
+        gotoxy(28, count + 3, name + '\n');
 
 		count++;
 	}
@@ -586,8 +580,8 @@ void UpdateScore(string name, int score, int time){
 }
 
 int score(){
-    game.GameTime = (clock() - game.StartTime) / CLOCKS_PER_SEC;
-    game.score += (500) / max(10, int(game.GameTime));
+    game.FullTime = (clock() - game.StartTime) / CLOCKS_PER_SEC;
+    game.score += (500) / max(10, int(game.FullTime));
 
     for(int i = 0; i < game.TableSize[0]; i++)
         for(int j = 0; j < game.TableSize[1]; j++)
