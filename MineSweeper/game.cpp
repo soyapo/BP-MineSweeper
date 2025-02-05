@@ -201,7 +201,7 @@ void SetTableNumbers(int height, int width, int bombcount, int x, int y){
     while(bombcount){
         RandX = rand() % height;
         RandY = rand() % width;
-        if(abs(RandX - x) > 1 && abs(RandY - y) > 1 && !game.bomb[RandX][RandY])
+        if((abs(RandX - x) > 1 || abs(RandY - y) > 1) && !game.bomb[RandX][RandY])
             game.bomb[RandX][RandY] = true, game.TableNumbers[RandX][RandY] = -1, bombcount--;
     }
 
