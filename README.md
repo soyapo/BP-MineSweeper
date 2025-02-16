@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # MineSweeper
 
 ## Introduction
@@ -79,11 +78,7 @@ Some potential future enhancements include:
 
 Course Instructor: 
 [Dr. Kheradpisheh](https://www.linkedin.com/in/saeed-reza-kheradpisheh-7a0b18155/)  
-
 Project Mentors: 
 [Mehrdad Shirvani](https://www.linkedin.com/in/mehrdad-shirvani/)
 and
 [Farid Karimi](https://www.linkedin.com/in/farid-kmi/)
-=======
-Classic Minesweeper game designed for Terminal, written in pure c++.
->>>>>>> 0e8f49ad1901d70b07571c77c6f05b4daba3fe07
