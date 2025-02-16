@@ -28,25 +28,25 @@ const string FourWay = "\u256C";
 struct{
     int pos[2] = {1, 2}, //cursor position
     TableSize[2],
-    TableNumbers[20][40]; //-1 for bomb, 1-8 for numbers
+    TableNumbers[40][20]; //-1 for bomb, 1-8 for numbers
     
     clock_t StartTime, FullTime;
 
     int BombCount, FlagCount, HiddenCount, score;
 
     bool started, //to distinguish the first action of the player 
-    bomb[20][40], //bomb positions in the grid
-    flag[20][40], //flag positions in the grid
-    show[20][40]; //whether to show the bombs/numbers or not
+    bomb[40][20], //bomb positions in the grid
+    flag[40][20], //flag positions in the grid
+    show[40][20]; //whether to show the bombs/numbers or not
 
     string PlayerName,
-    options[4] = {
+    Options[4] = {
         "New Game",
         "How To Play",
         "Leaderboard",
         "Exit"
     },
-    difficulties[4] = {
+    Difficulties[4] = {
         "Easy",
         "Medium",
         "Hard",
@@ -57,39 +57,40 @@ struct{
 
 //----Function Initialization-----
 
-void gotoxy(short x, short y, string s = ""); //cursor positioning
+void gotoxy(short, short, string s = ""); //cursor positioning
 
-void Color(int f, int b); //set the output color(foreground, background)
+void Color(int, int); //set the output color(foreground, background)
 void Logo(); //the logo shown in menu pages
-void PrintChar(string s, int n); //prints string s for n times
+void PrintChar(string, int); //prints string s for n times
 
-void ConstructTable(int row, int column); //builds and outputs the table given the input rows and columns based on difficulity
-void SetTableNumbers(int height, int width, int bombcount, int x, int y); //randomly places bombs and respectively numbers, given the width, height and the position of the player's first clearance
+void ConstructTable(int, int); //builds and outputs the table given the input rows and columns based on difficulity
+void SetTableNumbers(int, int, int, int, int); //randomly places bombs and respectively numbers, given the width, height and the position of the player's first clearance
 
 void StartGame(); //starts the game with previous initializations done
 void unroll(int x, int y); //reveals the neccessary cells based on the cell's (x, y) content 
 
 void Menu(); //starts the menu procedure
 void Instruction(); //instructions page
-void ButtonSwitch(int index, int list_index); //for switching between menu options
+void ButtonSwitch(int, int); //for switching between menu Options
 
 void SetDifficulty(); //The menu page dedicated for choosing the difficulity level
-void SetValue(int row, int col, int bomb); //initializes the game with the given row, column and bomb count
-void SetFlag(); //for flag/unflagging a cell
+void SetValue(int, int, int); //initializes the game with the given row, column and bomb count
+void SetFlag(int, int); //for flag/unflagging a cell
 
-void EndGame(bool win, string filler, string result); //end of game procedure, based on win or lost 
+void EndGame(bool, string, string); //end of game procedure, based on win or lost 
 
 void Create(); //creates the scoreboard file if neccessary
 void ShowScore(); //scoreboard page
-void UpdateScore(string name, int score, int time); //updates the scoreboard with given data
+void UpdateScore(string, int, int); //updates the scoreboard with given data
 
 int score(); //calculates player score
 
+void Solve();
+int Check(int, int);
 //--------------------------
 
 int main(){
     Menu(); //game starts with calling the main menu
-
     return 0;
 }
 
@@ -136,7 +137,7 @@ void PrintChar(string s, int n){
         cout<<s;
 }
 
-void ConstructTable(int row, int column){
+void ConstructTable(int column, int row){
     system("cls");
 
     //Top Row
@@ -187,7 +188,7 @@ void ConstructTable(int row, int column){
 
     cout<<endl<<endl<<"Flags Remaining: "<<game.FlagCount<<endl<<endl;
     
-    gotoxy(game.pos[1], game.pos[0]);
+    gotoxy(game.pos[0], game.pos[1]);
 }
 
 void SetTableNumbers(int height, int width, int bombcount, int x, int y){
@@ -250,45 +251,51 @@ void StartGame(){
         move = getch();
         switch(move){
         case 'w':
-            if(game.pos[0] != 1){
-                game.pos[0] += -2;
-                gotoxy(game.pos[1], game.pos[0]);
+            if(game.pos[1] != 1){
+                game.pos[1] += -2;
+                gotoxy(game.pos[0], game.pos[1]);
             }
             break;
         case 's':
-            if(game.pos[0] != 2 * game.TableSize[0] - 1){
-                game.pos[0] += 2;
-                gotoxy(game.pos[1], game.pos[0]);
+            if(game.pos[1] != 2 * game.TableSize[1] - 1){
+                game.pos[1] += 2;
+                gotoxy(game.pos[0], game.pos[1]);
             }
             break;
         case 'a':
-            if(game.pos[1] != 2){
-                game.pos[1] += -4;
-                gotoxy(game.pos[1], game.pos[0]);
+            if(game.pos[0] != 2){
+                game.pos[0] += -4;
+                gotoxy(game.pos[0], game.pos[1]);
             }
             break;
         case 'd':
-            if(game.pos[1] != 4 * game.TableSize[1] - 2){
-                game.pos[1] += 4;
-                gotoxy(game.pos[1], game.pos[0]);
+            if(game.pos[0] != 4 * game.TableSize[0] - 2){
+                game.pos[0] += 4;
+                gotoxy(game.pos[0], game.pos[1]);
             }
             break;
         case 'f':
-            SetFlag();
+            SetFlag(game.pos[0], game.pos[1]);
+            break;
+        case 'v':
+            if(game.started)
+                Solve();
+            break;
+        case 'p':
+            exit(0);
             break;
         case 'c':
             if(!game.started){ //is it the first time player has pressed this thing?
-                SetTableNumbers(game.TableSize[0], game.TableSize[1], game.BombCount, (game.pos[0] - 1) / 2, (game.pos[1] - 2) / 4);
-                gotoxy(game.pos[1], game.pos[0]);
+                SetTableNumbers(game.TableSize[0], game.TableSize[1], game.BombCount, (game.pos[0] - 2) / 4, (game.pos[1] - 1) / 2);
+                gotoxy(game.pos[0], game.pos[1]);
 
                 game.started = 1;
                 game.StartTime = clock();
             }
-            else if(!game.flag[(game.pos[0] - 1) / 2][(game.pos[1] - 2) / 4]){
-                unroll((game.pos[0] - 1) / 2, (game.pos[1] - 2) / 4);
-                gotoxy(game.pos[1], game.pos[0]);
+            else if(!game.flag[(game.pos[0] - 2) / 4][(game.pos[1] - 1) / 2]){
+                unroll((game.pos[0] - 2) / 4, (game.pos[1] - 1) / 2);
+                gotoxy(game.pos[0], game.pos[1]);
             }
-
             break;
         default:
             break;
@@ -302,7 +309,7 @@ void unroll(int x, int y){
 
     if(!game.TableNumbers[x][y]){ //it's empty, do a recursive calling for its adjacent cells 
         Color(7, 0);
-        gotoxy(4 * y + 2, 2 * x + 1, "-");
+        gotoxy(4 * x + 2, 2 * y + 1, "-");
         game.show[x][y] = true, game.HiddenCount--;
 
         if(game.HiddenCount == game.BombCount) //endgame if all clear cells have been cleared
@@ -328,8 +335,8 @@ void unroll(int x, int y){
 
     }
     else if(game.TableNumbers[x][y] > 0){ //it's a number, 
-        Color(game.TableNumbers[x][y], 0);
-        gotoxy(4 * y + 2, 2 * x + 1, to_string(game.TableNumbers[x][y]));
+        Color((game.TableNumbers[x][y] != 4 ? game.TableNumbers[x][y] : 11), 0);
+        gotoxy(4 * x + 2, 2 * y + 1, to_string(game.TableNumbers[x][y]));
         game.show[x][y] = true, game.HiddenCount--;
         Color(7, 0);
         
@@ -398,7 +405,7 @@ void ButtonSwitch(int index, int list_index){
             cout<<"\n          ";
 
         cout<<(i == index ? "-> " : "   ");
-        cout<<(list_index? game.difficulties[i] : game.options[i]);
+        cout<<(list_index? game.Difficulties[i] : game.Options[i]);
         cout<<(i == index ? " <-" : "")<<endl;
     }
 }
@@ -433,17 +440,17 @@ void SetDifficulty(){
 
 void SetValue(int row, int col, int bomb){
     //initialize default game values based on chosen difficulity at the start of the game 
-    int pos[2] = {1, 2};
+    game.pos[0] = 2, game.pos[1] = 1;
 
-    game.TableSize[0] = row, game.TableSize[1] = col;
+    game.TableSize[0] = col, game.TableSize[1] = row;
     game.BombCount = bomb;
     game.FlagCount = bomb;
     game.HiddenCount = (row * col);
 
     game.started = 0, game.score = 0;
 
-    for(int i = 0; i < 20; i++)
-        for(int j = 0; j < 40; j++)
+    for(int i = 0; i < 40; i++)
+        for(int j = 0; j < 20; j++)
             game.flag[i][j] = 0, game.bomb[i][j] = 0, 
                 game.show[i][j] = 0, game.TableNumbers[i][j] = 0;
 
@@ -451,27 +458,29 @@ void SetValue(int row, int col, int bomb){
     StartGame();
 }
 
-void SetFlag(){
+void SetFlag(int x, int y){
     //is it an unrevealed cell, and has the game started yet?
-    if(!game.show[(game.pos[0] - 1) / 2][(game.pos[1] - 2) / 4] && game.started){
+    if(!game.show[(x - 2) / 4][(y - 1) / 2] && game.started){
 
         //is it already flagged?
-        if(!game.flag[(game.pos[0] - 1) / 2][(game.pos[1] - 2) / 4] && game.FlagCount){
+        if(!game.flag[(x - 2) / 4][(y - 1) / 2] && game.FlagCount){
             Color(4, 0);
-            cout<<"F";
-            game.flag[(game.pos[0] - 1) / 2][(game.pos[1] - 2) / 4] = true;
+            gotoxy(x, y, "F");
+            game.flag[(x - 2) / 4][(y - 1) / 2] = true;
+            game.show[(x - 2) / 4][(y - 1) / 2] = true;
             game.FlagCount--;
             Color(7, 0);
         }
         else{
-            cout<<" ";
-            game.flag[(game.pos[0] - 1) / 2][(game.pos[1] - 2) / 4] = false;
+            gotoxy(x, y, " ");
+            game.flag[(x - 2) / 4][(y - 1) / 2] = false;
+            game.show[(x - 2) / 4][(y - 1) / 2] = false;
             game.FlagCount++;
         }
 
-        gotoxy(0, 2 * (game.TableSize[0] + 1));
+        gotoxy(0, 2 * (game.TableSize[1] + 1));
         cout<<"Flags Remaining: "<<game.FlagCount<<" "<<endl;
-        gotoxy(game.pos[1], game.pos[0]);
+        gotoxy(x, y);
     }
 }
 
@@ -481,10 +490,10 @@ void EndGame(bool win, string filler, string result){
     for(int i = 0; i < game.TableSize[0]; i++)
         for(int j = 0; j < game.TableSize[1]; j++)
             if(game.bomb[i][j])
-                gotoxy(4 * j + 2, 2 * i + 1, filler);
+                gotoxy(4 * i + 2, 2 * j + 1, filler);
                 
     Color(7, 0);
-    gotoxy(0, 2 * (game.TableSize[0] + 1));
+    gotoxy(0, 2 * (game.TableSize[1] + 1));
 
     cout<<"You "<<result<<"!!!            \n";
     cout<<"Score: "<<score() * 2<<'\n';
@@ -589,4 +598,49 @@ int score(){
                 game.score += game.TableNumbers[i][j];
 
     return game.score;
+}
+
+void Solve(){
+    for(int i = 0; i < game.TableSize[0]; i++)
+        for(int j = 0; j < game.TableSize[1]; j++)
+            if(Check(i, j))
+                Solve();
+}
+
+int Check(int x, int y){
+    int change = 0;
+
+    if(!game.show[x][y])
+        return 0;
+    
+    //flagging
+    int empty = 0, flag = 0;
+    pair <int, int> adj[8] = {{x - 1, y - 1}, {x - 1, y}, {x - 1, y + 1}, {x, y - 1}, {x, y + 1}, {x + 1, y - 1}, {x + 1, y}, {x + 1, y + 1}};
+    for(int i = 0; i < 8; i++){
+        if(adj[i].first < 0 || adj[i].second < 0 || adj[i].first >= game.TableSize[0] || adj[i].second >= game.TableSize[1])
+            continue;
+        empty += (!game.show[adj[i].first][adj[i].second]);
+        flag += (game.flag[adj[i].first][adj[i].second]);
+    }
+    if(game.TableNumbers[x][y] - flag == empty){        
+        for(int i = 0; i < 8; i++){
+            if(adj[i].first < 0 || adj[i].second < 0 || adj[i].first >= game.TableSize[0] || adj[i].second >= game.TableSize[1])
+                continue;
+            if(!game.show[adj[i].first][adj[i].second]){
+                SetFlag(adj[i].first * 4 + 2, adj[i].second * 2 + 1);
+                change = 1;
+            }
+        }
+    }
+    if(!(game.TableNumbers[x][y] - flag)){
+        for(int i = 0; i < 8; i++){
+            if(adj[i].first < 0 || adj[i].second < 0 || adj[i].first >= game.TableSize[0] || adj[i].second >= game.TableSize[1])
+                continue;   
+            if(!game.show[adj[i].first][adj[i].second]){
+                unroll(adj[i].first, adj[i].second);
+                change = 1;
+            }
+        }   
+    }
+    return change;
 }
